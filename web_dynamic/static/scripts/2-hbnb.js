@@ -1,29 +1,46 @@
-$(document).ready(init);
+'use strict';
+$(() => {
+  let amenitiesSelected = [];
+  const selectors = {
+    amenitiesHeader: '.amenities > h4',
+    amenityBox: '.amenities > .popover > ul > li > input[type="checkbox"]',
+    amenityItem: '.amenities > .popover > ul > li'
+  };
+  const BASE_URL = 'http://localhost:5001/api/v1';
 
-const HOST = '0.0.0.0';
-
-function init () {
-  const amenityObj = {};
-  $('.amenities .popover input').change(function () {
-    if ($(this).is(':checked')) {
-      amenityObj[$(this).attr('data-name')] = $(this).attr('data-id');
-    } else if ($(this).is(':not(:checked)')) {
-      delete amenityObj[$(this).attr('data-name')];
-    }
-    const names = Object.keys(amenityObj);
-    $('.amenities h4').text(names.sort().join(', '));
+  $(selectors.amenityItem).on('mousedown', ev => {
+    ev.target.getElementsByTagName('input')?.item(0)?.click();
   });
 
-  apiStatus();
-}
+  $(selectors.amenityBox).change(ev => {
+    const amenityId = ev.target.getAttribute('data-id');
+    const amenityName = ev.target.getAttribute('data-name');
 
-function apiStatus () {
-  const API_URL = `http://${HOST}:5001/api/v1/status/`;
-  $.get(API_URL, (data, textStatus) => {
-    if (textStatus === 'success' && data.status === 'OK') {
-      $('#api_status').addClass('available');
+    if (ev.target.checked) {
+      if (!amenitiesSelected.find(obj => obj.id === amenityId)) {
+        amenitiesSelected.push({
+          id: amenityId,
+          name: amenityName
+        });
+      }
     } else {
-      $('#api_status').removeClass('available');
+      amenitiesSelected = amenitiesSelected.filter(
+        obj => (obj.id !== amenityId) && (obj.name !== amenityName)
+      );
+    }
+    const htmlContent = amenitiesSelected.map(obj => obj.name).join(', ');
+    $(selectors.amenitiesHeader).html(
+      amenitiesSelected.length > 0 ? htmlContent : '&nbsp;'
+    );
+  });
+
+  $.get(`${BASE_URL}/status`, (data, status) => {
+    if ((status === 'success') && (data.status === 'OK')) {
+      if (!$('div#api_status').hasClass('available')) {
+        $('div#api_status').addClass('available');
+      }
+    } else {
+      $('div#api_status').removeClass('available');
     }
   });
-}
+});
